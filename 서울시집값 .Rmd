@@ -1,0 +1,902 @@
+---
+title : "서울시 아파트 값은 계속 오를것인가?"
+author : "임종인, 황예진, 백준호"
+data : "2020-07-15"
+output :   
+  rmdformats::readthedown:
+   code_folding : hide
+   number_sections : true
+   self_contained : true
+   lightbox : true
+   gallery : true
+---
+```{r eval=F}
+library(rmdformats)
+```
+
+
+# 프로젝트 개요
+
+ 정부까지 나서 부동산 가격을 잡겠다고 공표를 내놓은 상황에서 서울의 아파트 값은 날이 갈수록 더욱 상승하고 있는 모습을 보이고 있다.
+이처럼 수많은 규제와 정책에도 불구하고 서울의 아파트 가격이 상승하는 원인은 무엇인지 알아보고자 한다.
+
+## 1차 가설 설정
+
+본 프로젝트에서는 세계보건기구(WHO)의 '주거의 공중위생적 관점에 대한 전문위원회'에서 밝힌 주거환경과 주변의 지역적, 사회적 조건에 입각하여 '아파트 거래량과 시군구 별 거주환경, 아파트 준공년도가 아파트 가격 상승에 큰 영향을 줄 것이다.'라는 가설을 토대로 아파트 가격 상승 요인을 확인하고자 한다.
+
+ 
+ 
+## 분석 방법
+
+ 본 프로젝트에서는 2008년 서울시 아파트 거래 데이터와 2019년 서울시 아파트 거래 데이터, 행정구 별 공원데이터, 행정구 별 어린이집 데이터를 이용하여 1차 가설을 검증하고자 한다. 2008년 서울시 아파트 거래 데이터와 2019년 서울시 아파트 거래 데이터는 행정구역 별 아파트 거래량에 대해 알 수 있을 것이며, 공원데이터와 어린이집 데이터를 통해 주거환경과 주변의 지역적, 사회적 조건이 우수한 위치의 아파트 가격을 비교하여 실제로 더 높은 가격에 거래되는지 알 수 있을 것이다. 
+ 
+ 
+$$평당 가격 상승 요인 = 행정구역별 공원 수, 아파트 평균 준공년도, 어린이집 수, 거래량$$
+ 
+
+## 활용 데이터의 출처
+
+[데이콘, 직방 2008년 아파트 거래 데이터, 공원 데이터, 어린이집 데이터](https://dacon.io/competitions/official/21265/data/)
+
+[나성호님, 2019년 아파트 거래 데이터](https://mrkevinna.github.io/)
+
+
+
+# 데이터 전처리
+
+## 평당가격 변수 생성
+
+본 프로젝트를 진행함에 있어 아파트 실거래가의 경우 평 수에 상당히 민감하기 때문에 데이터의 공정성을 위해 평당 가격을 기준으로 거래가를 분석하고자 하였고, 이에 전용면적 컬럼을 이용해 평당 가격 컬럼을 새로이 생성하였다.
+
+```{r eval=F}
+# 면적당가격 칼럼 추가
+
+apt_data_2008$면적당가격 <- round(x = apt_data_2008$transaction_real_price/apt_data_2008$exclusive_use_area, digit = 2)
+# 평당가격 칼럼 추가  
+apt_data_2008$평당가격 <- round(x = apt_data_2008$면적당가격/3.3, digit = 2) 
+```
+
+
+
+## 2008년 아파트 데이터 행정구역 컬럼 추가
+
+본 프로젝트는 지역적, 사회적 조건에 입각하여 서울시 아파트 가격을 비교 분석하기 위해 2008년 아파트 거래데이터의 법정동을 기준으로 각 행정구역 컬럼을 추가로 생성하였다.
+
+```{r eval=F}
+
+#법정동 기준 행정구 컬럼 생성
+apt_data_2008$gu <- '강남구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '가리'] = '구로구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '가산'] = '금천구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '가양'] = '강서구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '갈현'] = '은평구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '개봉'] = '구로구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '개포'] = '강남구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '거여'] = '송파구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '견지'] = '종로구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '고덕'] = '강동구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '고척'] = '구로구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '공덕'] = '마포구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '공릉'] = '노원구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '공항'] = '강서구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '광장'] = '광진구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '구로'] = '구로구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '구산'] = '은평구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '구의'] = '광진구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '군자'] = '광진구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '궁동'] = '구로구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '금호'] = '성동구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '길동'] = '강동구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '길음'] = '성북구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '낙원'] = '종로구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,3) == '남가좌'] = '서대문구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '남산'] = '중구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '남현'] = '관악구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,3) == '내발산'] = '강서구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '냉천'] = '강서구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '냉천'] = '서대문구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '노고산'] = '마포구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,3) == '노고산'] = '마포구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,3) == '노량진'] = '동작구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '녹번'] = '은평구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '논현'] = '강남구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '누상'] = '종로구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,3) == '답십리'] = '동대문구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '당산'] = '영등포구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '대림'] = '영등포구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '대방'] = '동작구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '대조'] = '은평구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '대치'] = '강남구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '대현'] = '서대문구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '대흥'] = '마포구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '도곡'] = '강남구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '도림'] = '영등포구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '도봉'] = '도봉구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '도선'] = '성동구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '도원'] = '용산구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '도화'] = '마포구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '독산'] = '금천구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '돈암'] = '성북구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '동교'] = '마포구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,3) == '동빙고'] = '용산구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '동선'] = '성북구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,3) == '동소문'] = '성북구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '동숭'] = '종로구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '동자'] = '용산구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '동작'] = '동작구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '둔촌'] = '강동구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '등촌'] = '강서구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '마곡'] = '강서구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '마장'] = '성동구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '마천'] = '송파구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '마포'] = '마포구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '만리'] = '중구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '망우'] = '중랑구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '망원'] = '마포구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '면목'] = '중랑구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '명일'] = '강동구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '목동'] = '양천구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '묵동'] = '중랑구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '문래'] = '영등포구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '문배'] = '용산구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '문정'] = '송파구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '미근'] = '서대문'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '미아'] = '강북구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '반포'] = '서초구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '방배'] = '서초구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '방이'] = '송파구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '방학'] = '도봉구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '방화'] = '강서구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '번동'] = '강북구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '보광'] = '용산구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '보문'] = '성북구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '본동'] = '동작구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '봉천'] = '관악구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '부암'] = '종로구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,3) == '북가좌'] = '서대문구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,3) == '북아현'] = '서대문구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '불광'] = '은평구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '사근'] = '성동구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '사당'] = '동작구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '사직'] = '종로구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '신림'] = '관악구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '산천'] = '용산구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '삼선'] = '성북구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '삼성'] = '강남구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '삼전'] = '송파구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '상계'] = '노원구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '상도'] = '동장구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '상봉'] = '중랑구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '상수'] = '마포구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '상암'] = '마포구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,3) == '상월곡'] = '성북구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '상일'] = '강동구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '서교'] = '마포구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '서빙고'] = '용산구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '서초'] = '서초구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '석관'] = '성북구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '석촌'] = '송파구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '성내'] = '강동구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '성북'] = '성북구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '성산'] = '마포구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '성수'] = '성동구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '송정'] = '성동구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '송파'] = '송파구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '수색'] = '은평구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '수서'] = '강남구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '수유'] = '강북구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '순화'] = '중구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '숭인'] = '종로구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,3) == '신공덕'] = '마포구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '시흥'] = '금천구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '신길'] = '영등포구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '신내'] = '중랑구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '신당'] = '중구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '신대방'] = '동작구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,3) == '신대방'] = '동작구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,3) == '신도림'] = '구로구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '신림'] = '관악구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '신사'] = '강남구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '신설'] = '동대문구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '신수'] = '마포'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '신영'] = '종로구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '신월'] = '양천구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '신정'] = '마포구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '신창'] = '용산구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '신천'] = '송파구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '쌍문'] = '도봉구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '아현'] = '마포구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '안암'] = '성북구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '암사'] = '강동구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,3) == '압구정'] = '강남구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '양재'] = '서초구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '양평'] = '영등포구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,3) == '여의도'] = '영등포구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '역삼'] = '강남구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '역촌'] = '은평구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '연남'] = '마포구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '연희'] = '서대문구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '염리'] = '마포구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '염창'] = '강서구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,3) == '영등포'] = '영등포구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '영천'] = '서대문구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '오금'] = '송파구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '오류'] = '구로구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '옥수'] = '성동구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '온수'] = '구로구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '용강'] = '마포구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '용답'] = '성동구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '용두'] = '동대문구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '용문'] = '용산구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '용산'] = '용산구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '우면'] = '서초구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '우이'] = '강북구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,3) == '원효로'] = '용산구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '월계'] = '노원구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,3) == '을지로'] = '중구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '응봉'] = '성동구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '응암'] = '은평구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '이문'] = '동대문구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '이촌'] = '용산구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,3) == '이태원'] = '용산구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '이화'] = '종로구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '익선'] = '종로구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '인의'] = '종로구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '인현'] = '중구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '일원'] = '강남구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '자양'] = '광진구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '잠실'] = '송파구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '잠원'] = '서초구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '장안'] = '동대문구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '장위'] = '성북구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '장지'] = '송파구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '장충'] = '중구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '전농'] = '동대문구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '정릉'] = '성북구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '제기'] = '동대문구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '종암'] = '성북구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '중계'] = '노원구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '중곡'] = '광진구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '중동'] = '마포구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '중림'] = '중구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '중화'] = '중랑구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '증산'] = '은평구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '진관'] = '은평구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '창동'] = '도봉구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '창신'] = '종로구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '창전'] = '마포구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '창천'] = '서대문구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '천연'] = '서대문구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '천호'] = '강동구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '청담'] = '강남구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,3) == '청량리'] = '동대문구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '청암'] = '용산구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '청운'] = '종로구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '청파'] = '용산구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,3) == '충무로'] = '중구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '토정'] = '마포구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '통인'] = '종로구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '평창'] = '종로구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '풍납'] = '송파구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '필운'] = '종로구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '하계'] = '노원구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,4) == '하왕십리'] = '성동구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,3) == '하월곡'] = '성북구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,3) == '한강로'] = '용산구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '한남'] = '용산구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '합동'] = '서대문구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '합정'] = '마포구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '항동'] = '구로구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '행당'] = '성동구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '행촌'] = '종로구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '현석'] = '마포구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '현저'] = '서대문구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '혜화'] = '종로구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '홍은'] = '서대문구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '홍익'] = '성동구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '홍제'] = '서대문구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '화곡'] = '강서구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '화양'] = '강진구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '황학'] = '중구구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '회기'] = '동대문구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '회현'] = '중구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '효창'] = '용산구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '후암'] = '용산구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '휘경'] = '동대문구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '흑석'] = '동작구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '흥인'] = '중구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '산림'] = '중구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,3) == '서빙고'] = '용산구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '무악'] = '종로구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '수송'] = '종로구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '명륜'] = '종로구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '신교'] = '종로구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,3) == '충정로'] = '서대문구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '내수'] = '종로구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,3) == '신문로'] = '종로구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '묵정'] = '중구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '명륜'] = '종로구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '무악'] = '종로구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '수송'] = '종로구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '신교'] = '종로구'
+apt_data_2008$gu[substr(apt_data_2008$dong,1,2) == '교북'] = '종로구'
+
+```
+
+## 데이터 프레임 컬럼 처리
+
+ 본 프로젝트에서 평당 가격의 변수로 작용하는 층수, 준공년도, 구별 아파트 거래량을 따로 정리하고, 기존 gu와 floor로 되어있던 컬럼을 모두 한글화하여 데이터프레임에 통일성을 가져갈 수 있도록하였다.
+
+```{r eval=F}
+
+#2008년 아파트 거래 데이터에서 필요한 컬럼만 추출
+apt_data_2008_final <- apt_data_2008 %>% 
+  rename('법정동' = 'dong', '시군구' = 'gu', '아파트' = 'apt', '층수' = 'floor', '실거래가'= 'transaction_real_price', '준공년도' = 'year_of_completion')
+
+apt_data_2008_final <- apt_data_2008_final
+  select('시군구','법정동','아파트','층수','준공년도','평당가격')
+
+#2019년 아파트 거래 데이터에서 필요한 컬럼만 추출
+apt_data_2019$거래금액 <-  as.factor(apt_data_2019$거래금액)
+apt_data_2019$거래금액 <- as.numeric(apt_data_2019$거래금액)
+
+apt_data_2019$면적당가격 <- round(x =apt_data_2019$거래금액/apt_data_2019$전용면적, digit = 2)
+apt_data_2019$평당가격 <- round(x = apt_data_2019$면적당가격*3.3, digit = 2) 
+
+apt_data_2019_final <- apt_data_2019 %>% 
+  select(X, 시군구, 법정동, 아파트, 층, 건축년도, 평당가격)
+```
+
+## 박스플랏 그래프를 통한 구별 아파트 값 설정
+
+구별 아파트 평당 가격의 이상치를 확인하고, 구별 평당 가격을 평균 값으로 설정할 것인지, 중위값으로 할 것인지 결정하기 위해 박스플랏을 그려 확인하여 구별 평당 가격을 평균 가격으로 할 것인지, 중위 값으로 할 것인지 판단한다.
+![text](C:/Users/junho/Documents/Nano degree/project/graph/2008구별평당가격.png)
+![text](C:/Users/junho/Documents/Nano degree/project/graph/2019구별평당가격.png)
+
+
+```{r eval=F}
+graphtest1 <- read.csv("C:/Users/junho/Documents/Nano degree/project/graphtest1.csv")
+#박스플랏 그래프
+library(ggplot2)
+ggplot(graphtest1, aes(x = 시군구, y = 평당가격, fill = 시군구)) + geom_boxplot()
+#구별 아파트 평당 가격 중위값 _ 2008년
+apt_median_2008 <- apt_data_2008 %>%
+  group_by('시군구') %>%
+  summarise(median19 = median(평당가격, na.rm = FALSE))
+#구별 아파트 평당 가격 중위값 _ 2019년
+apt_median_2019 <- apt_data_2019 %>%
+  group_by(시군구) %>%
+  summarise(median19 = median(평당가격, na.rm = FALSE))
+```
+
+구별 아파트 평당 가격 중위값으로 설정
+박스플랏에서 확인할 수 있듯, 모든 구에서 이상치를 보이고 있기 때문에, 구별 평당 가격은 중위값으로 할당하여 비교, 분석하고자 한다.
+
+
+## 공원, 어린이집 데이터 전처리
+
+공원, 어린이집의 경우 시군구를 기준으로 공원수와 어린이집수를 전처리하였다. 이 과정에서 결측값은 다중대체를 이용해 처리하였다.
+
+```{r eval=F}
+#공원수, 어린이집수 결측값 다중대체
+park <- read.csv("C:/Users/junho/Documents/Nano degree/project/park_seoul.csv")
+
+park <- park %>% 
+  select(city, gu) %>% 
+  group_by(gu) %>% 
+  count(공원수 = n())
+
+park <- rbind(park, data.frame(gu = "성북구", 공원수 = 0, n = 0))
+park <- rbind(park, data.frame(gu = "마포구", 공원수 = 0, n = 0))
+
+park <- park %>% 
+  arrange(gu)
+
+care <- read.csv("C:/Users/junho/Documents/Nano degree/project/care_seoul.csv")
+care <- care %>% 
+  select(city, gu) %>% 
+  group_by(gu) %>% 
+  count(어린이집수 = n())
+
+care <- rbind(care, data.frame(gu = "동대문구", 어린이집수 = 0, n = 0))
+care <- rbind(care, data.frame(gu = "마포구", 어린이집수 = 0, n = 0))
+care <- rbind(care, data.frame(gu = "용산구", 어린이집수 = 0, n = 0))
+care <- rbind(care, data.frame(gu = "성북구", 어린이집수 = 0, n = 0))
+
+care <- care %>% 
+  arrange(gu)
+
+parkNcare <- left_join(x = park, y = care,  by = 'gu')
+parkNcare <- parkNcare[, c(1,2,4)]
+
+replace(apt_data_08vs19$공원수,apt_data_08vs19$공원수 == 0, NA) -> apt_data_08vs19$공원수
+replace(apt_data_08vs19$어린이집수, apt_data_08vs19$어린이집수 == 0, NA) -> apt_data_08vs19$어린이집수
+
+library(mice)
+apt_NAnon_08v19 <- mice(data = apt_data_08vs19[,9:10],
+                        m = 5,
+                        method = 'pmm',
+                        seed = 1234)
+summary(object = apt_NAnon_08v19)
+apt_NAnon_08v19$imp$공원수
+apt_notNA <- complete(data = apt_NAnon_08v19, action = 1)
+apt_data_08vs19$공원수 <-  apt_notNA$공원수
+apt_data_08vs19$어린이집수 <- apt_notNA$어린이집수
+```
+
+## 전처리 결과
+
+실질적으로 2008년 아파트 평당 가격 중위값과 2019년 아파트 평당 가격 중위값의 차이는 얼마가 나며, 각 구별 많이 오른 구는 어디인지 파악하기 위해 2008년 아파트 평당 가격 중위값과 2019년 아파트 평당 가격 중위값의 차이를 보여주는 변수를 새로이 생성하였고, 구별 아파트 평균 준공년도 컬럼과 2008년 아파트 거래량 컬럼, 2019년 아파트 거래량 컬럼을 새로이 생성하여 각 구별 아파트 거래량, 준공년도, 평당 가격 중위값을 1개 테이블에서 볼 수 있도록 전처리하였다. 또한 타 데이터 프레임으로 있던 공원수와 어린이집 수 데이터를 1개 테이블로 만들어 전처리를 마쳤다.
+
+```{r eval=F}
+apt_data_2008_final <- apt_data_2008 %>% 
+  rename('법정동' = 'dong', '시군구' = 'gu', '아파트' = 'apt', '층수' = 'floor', '실거래가'= 'transaction_real_price', '준공년도' = 'year_of_completion', '평당가격08' = '평당가격')
+
+apt_data_2008_final <- apt_data_2008_final %>% 
+  select('X','시군구','법정동','아파트','층수','준공년도','평당가격08')
+
+apt_data_2008 <- apt_data_2008 %>% 
+  arrange(transaction_year_month)
+
+apt_data_2008 <- apt_data_2008[1:56829, ]
+
+
+apt_data_2008_final <- apt_data_2008_final %>%
+  group_by(시군구) %>% 
+  mutate(평당가격08 = median(x = 평당가격))
+
+apt_data_2008_final <- apt_data_2008_final %>% 
+  group_by(시군구) %>% 
+  mutate(평균층 = round(mean(x = 층수), digits = 0))
+            
+apt_data_2008_final <- apt_data_2008_final %>% 
+  group_by(시군구) %>% 
+  mutate(평균준공년도 = round(mean(x = 준공년도), digit = 0))
+
+
+apt_data_2008_final <- apt_data_2008_final %>% 
+  group_by(시군구) %>% 
+  arrange(시군구)
+
+apt_data_2008_final <- apt_data_2008_final[, c(2,4:6)]
+
+apt_data_2008_final <- apt_data_2008_final %>% 
+  group_by(시군구) %>% 
+  distinct(시군구, .keep_all = TRUE)
+
+apt_data_2019 <- read.csv("C:/Users/junho/Documents/Nano degree/project/2019aptdata.csv")
+
+apt_data_2019$거래금액 <-  as.factor(apt_data_2019$거래금액)
+apt_data_2019$거래금액 <- as.numeric(apt_data_2019$거래금액)
+
+apt_data_2019$면적당가격 <- round(x =apt_data_2019$거래금액/apt_data_2019$전용면적, digit = 2)
+apt_data_2019$평당가격 <- round(x = apt_data_2019$면적당가격*3.3, digit = 2) 
+
+apt_data_2019_final <- apt_data_2019 %>% 
+  select(X, 시군구, 법정동, 아파트, 층, 건축년도, 평당가격)
+
+
+apt_data_2019_final <- apt_data_2019_final %>%
+  group_by(시군구) %>% 
+  mutate(평당가격19 = median(x = 평당가격))
+
+apt_data_2019_final <- apt_data_2019_final %>% 
+  group_by(시군구) %>% 
+  mutate(평균층 = round(mean(x = 층), digits = 0))
+
+apt_data_2019_final <- apt_data_2019_final %>% 
+  group_by(시군구) %>% 
+  mutate(평균준공년도 = round(mean(x = 건축년도), digit = 0))
+
+apt_data_2019_final <- apt_data_2019_final %>% 
+  group_by(시군구) %>% 
+  arrange(시군구)
+
+apt_data_2019_final <- apt_data_2019_final[, c(2,8:10)]
+
+apt_data_2019_final <- apt_data_2019_final %>% 
+  group_by(시군구) %>% 
+  distinct(시군구, .keep_all = TRUE)
+
+apt_data_08vs19 <- left_join(x = apt_data_2008_final, y = apt_data_2019_final, by = '시군구')
+
+apt_data_08vs19$평당가격08 <- apt_data_08vs19$평당가격08 / 10
+apt_data_08vs19$평당가격19 <- apt_data_08vs19$평당가격19 * 100
+
+apt_data_08vs19$평당가격차이 <- apt_data_08vs19$평당가격19 - apt_data_08vs19$평당가격08
+```
+
+
+
+# 1차 데이터 시각화
+
+## 평당가격 중위값 차이와 준공년도, 산점도 그래프
+
+```{r eval=F}
+ggplot(data = apt_data_08vs19, mapping = aes(x = apt_data_08vs19$gap, y = apt_data_08vs19$준공년도08)) + geom_point(aes(color = apt_data_08vs19$시군구))
+
+ggplot(data = apt_data_08vs19, mapping = aes(x = apt_data_08vs19$gap, y = apt_data_08vs19$준공년도19)) + geom_point(aes(color = apt_data_08vs19$시군구))
+```
+![](C:/Users/junho/Documents/Nano degree/준공년도08.png)
+
+
+![](C:/Users/junho/Documents/Nano degree/준공년도19.png)
+
+## 평당가격 중위값 차이와 어린이집 수 산점도 그래프
+
+```{r eval=F}
+ggplot(data = apt_data_08vs19, mapping = aes(x = apt_data_08vs19$gap, y = apt_data_08vs19$어린이집수)) + geom_point(aes(color = apt_data_08vs19$시군구))
+
+```
+
+![](C:/Users/junho/Documents/Nano degree/어린이집수.png)
+
+## 평당가격 중위값 차이와 공원 수 산점도 그래프
+
+```{r eval = F}
+ggplot(data = apt_data_08vs19, mapping = aes(x = apt_data_08vs19$gap, y = apt_data_08vs19$공원수)) + geom_point(aes(color = apt_data_08vs19$시군구))
+```
+
+![](C:/Users/junho/Documents/Nano degree/공원수.png)
+
+## 평당가격 중위값 차이와 거래량 산점도 그래프
+
+```{r eval = F}
+
+ggplot(data = apt_data_08vs19, mapping = aes(x = apt_data_08vs19$gap, y = apt_data_08vs19$trans08)) + geom_point(aes(color = apt_data_08vs19$시군구))+ xlab("평당가격 중위값 차이") + ylab("08년도 거래량")
+
+
+ggplot(data = apt_data_08vs19, mapping = aes(x = apt_data_08vs19$gap, y = apt_data_08vs19$trans19)) + geom_point(aes(color = apt_data_08vs19$시군구))+ xlab("평당가격 중위값 차이") + ylab("19년도 거래량")
+
+```
+
+![](C:/Users/junho/Documents/Nano degree/08년도 거래량.png)
+![](C:/Users/junho/Documents/Nano degree/19년도 거래량.png)
+
+## 2008년 평당가격, 2008년 거래량, 어린이집 수, 공원 수, 2008년 평균 준공년도 Correlation Chart 생성
+
+![](C:/Users/junho/Documents/Nano degree/project/graph/2008_pairs_upper.png)
+
+## 2019년 평당가격, 2019년 거래량, 어린이집 수, 공원 수, 2019년 평균 준공년도 Correlation chart 생성
+
+![](C:/Users/junho/Documents/Nano degree/project/graph/2019_pairs_upper.png)
+
+## 1차 가설 검증의 결과
+
+위의 산점도 그래프와 Correlation chart에서 볼 수 있듯 아파트 평당가격은 거래량, 어린이집 수, 공원 수, 평균 준공년도와 크게 관련이 없음을 알 수 있다. 특히 Correlation chart를 자세히 살펴보면, 평당가격과 거래량은 양의 상관관계가 음의 상관관계로 변화한 걸 볼 수 있으며, 준공년도의 경우 강한 음의 상관관계가 상관관계 없음으로 변화하는 등 각 변수간의 유의성이 없는 모습을 보였다.
+
+이에 우리는 위의 아파트와 직접적으로 관계있는 데이터가 아닌 실질적으로 거래에 영향을 줄 수 있는 다른 변수들을 새로이 추가하여 아파트 가격의 상승 여부를 파악하고자 하였다.
+
+
+# 2차 가설
+
+## 본 프로젝트의 1차 가설 검증을 마치며 프로젝트를 진행하며 놓친 요소가 무엇인지 파악해보고자 한다.
+
+1. 인구가 줄었어도 평당 가격은 크게 상승하였다.
+
+2. 정성적인 측면에서 아파트의 수요는 여전히 높다.
+
+3. 가구수의 증감에 대해서는 전혀 파악하지 않았다.
+
+우리는 위의 3가지 요소를 중심으로 '인구수가 줄어들고, 아파트 거래량이 적어져도 서울의 아파트 가격은 계속 상승할 것이다.'라는 가설을 다시 검증하고자 한다.
+
+## 2차 가설 분석 방법
+
+ 1차 가설 검증에서 진행한 행정구역 컬럼을 기준으로 2019년 행정구별 인구수와 아파트에 거주하는 1인 가구수 증감을 확인하기 위해 2010년, 2018년 1인 가구 통계(거처종류별), 2010년, 2019년 서울시 세대수 통계 자료를 바탕으로 지난 10년 간 1인 아파트 거주자수의 증감과 세대수의 증감, 세대당인구수의 증감 변수를 바탕으로 서울시 아파트 가격 상승 요인을 확인하고자 한다.
+ 
+
+## 추가 데이터의 출처
+
+[서울 열린 데이터 광장](https://data.seoul.go.kr/dataList/419/S/2/datasetView.do)
+
+## 2차 데이터 전처리 _ 서울시 세대수 증감 계산
+
+```{r eval=F}
+# 2010, 2019년 서울시 세대수 증감 계산
+
+fam_10_1 <- read_xlsx(path = '2010_fam_1.xlsx')
+str(fam_10_1)
+
+fam_19_1 <- read_xlsx(path = '2019_fam_1.xlsx')
+fam_gap <- left_join(fam_10_1, fam_19_1, by = '시군구')
+
+fam_gap <- fam_gap[, c(2,3,4,6,7)]
+
+fam_gap <- fam_gap %>%
+  rename('세대수08' = '세대수.x', '세대당인구08' = '세대당인구.x','세대수19'='세대수.y','세대당인구19' ='세대당인구.y')
+
+fam_gap <- fam_gap %>%
+  mutate(family_gap = 세대수19 - 세대수08)
+
+fam_gap <- fam_gap %>%
+  mutate(family_num_gap = 세대당인구19 - 세대당인구08)
+
+fam_gap_join <- fam_gap[, c(1,6,7)]
+
+apt_data_08vs19 <- left_join(apt_data_08vs19, fam_gap_join, by = '시군구')
+
+apt_data_08vs19 <- apt_data_08vs19 %>% 
+  rename('세대수증감' = 'family_gap', '세대당인구수증감' = 'family_num_gap')
+```
+
+## 2차 데이터 전처리 _ 서울시 1인 아파트 거주자 수 증감 계산
+
+```{r eval=F}
+#2010, 2018 서울시 1인 아파트 거주자 수 증감 계산
+
+oneman2010 <- read_xlsx(path = '2010_oneman.xlsx')
+
+oneman2018 <- read_xlsx(path = '2018_oneman.xlsx')
+
+oneman2010 <- oneman2010[, c(1,4)]
+
+oneman2010 <- oneman2010[2:26, ]
+
+oneman2018 <- oneman2018[2:26, ]
+
+oneman2018 <- oneman2018[ , c(1,4)]
+
+oneman2010 <- oneman2010 %>%
+  rename('시군구' = '자치구')
+
+oneman2018 <- oneman2018%>%
+  rename('시군구' = '자치구')
+
+oneman <- left_join(oneman2010, oneman2018, by = '시군구')
+
+oneman <- oneman %>%
+  rename('아파트1인거주자10년' = '아파트.x' , '아파트1인거주자18년' = '아파트.y')
+
+oneman <- oneman %>%
+  mutate(one_man_gap = 아파트1인거주자18년 - 아파트1인거주자10년)
+
+apt_data_08vs19 <- left_join(apt_data_08vs19, oneman, by = '시군구')
+
+apt_data_08vs19 <- apt_data_08vs19 %>% 
+  rename('1인아파트거주자증감' = 'one_man_gap')
+```
+
+
+## 데이터 전처리 결과
+![text](C:/Users/junho/Documents/Nano degree/project/graph/전처리결과.png)
+# 2차 데이터 시각화
+
+## 2008년 대비 2019년 아파트 평당 가격 중위값 변화
+
+```{r eval = F}
+plot(x = sort(x = apt_data_08vs19$평당가격08),
+     ann = F, 
+     type = 'o',
+     ylab = '2008 평당가격',
+     ylim = c(1000,7000),
+     pch = 19,
+     col = 'green',
+     main = '평당가격중위값'
+)
+
+# 꺽은선 그래프에 2008년 중위값 오름차순에 따른 구이름 추가
+text(x = sort(x= apt_data_08vs19$평당가격08),
+     labels = apt_data_08vs19$시군구,
+     pos = 3,
+     cex = 0.5,
+     col = 'green')
+
+# 라인 함수로 2019 그래프 겹치기
+lines(x = sort(x = apt_data_08vs19$평당가격19),
+      type = 'o',
+      ylab = '2019 평당가격',
+      pch = 19,
+      col = 'red'
+)
+
+# 꺽은선 그래프에 2029년 중위값 오름차순에 따른 구이름 추가
+text(x = sort(x= apt_data_08vs19$평당가격19),
+     labels = apt_data_08vs19$시군구,
+     pos = 3,
+     cex = 0.5,
+     col = 'red'
+)
+
+# 범례추가
+legend('topleft', title = '년도', legend = c(2019,2008), fill = 2:3, cex = 0.7)
+
+# 그래프 축이름 추가
+title(main = '2008-2019 평당가격중위값 변화',
+      xlab = '시군구',
+      ylab = '평당가격중위값',
+      cex.main = 1,
+      cex.lab = 0.7
+)
+```
+
+
+지난 10년 간 서울의 행정 구역은 평균 2,600만 원의 중위값이 상승하였고, 가장 낮게 상승한 행정구역은 도봉구로 1,079만 원 상승, 가장 높게 상승한 행정구역은 강남구로 4,045만 원 상승하였다.
+![text](C:/Users/junho/Documents/Nano degree/project/graph/구별 평당가격 중위값.png)
+
+## 지리적 위치별 아파트 평당 가격 중위값 변화
+
+```{r eval = F}
+install.packages("ggmap")
+install.packages("raster")
+install.packages("rgeos")
+install.packages("maptools")
+install.packages("rgdal")
+library(ggmap)
+library(raster)
+library(rgeos)
+library(maptools)
+library(rgdal)
+getwd()
+seoul_id <- read.csv("/Users/imjong-in/Nano Degree/project/1st project/1st project data/4th_Competition/seoul_id.csv")
+x <- apt_data_08vs19
+seoul_id <- seoul_id %>%
+  rename('시군구' = '시군구명')
+x<- left_join(seoul_id, x, by = '시군구')
+seoul_id$시군구 <- sort(seoul_id$시군구)
+map <- shapefile("Users/imjong-in/Nano Degree/project/1st project/1st project data/4th_Competition/TL_SCCO_SIG.shp")
+map <- spTransform(map, CRSobj = CRS('+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs'))
+new_map <- fortify(map, region = 'SIG_CD')
+View(new_map)
+new_map$id <- as.numeric(new_map$id)
+seoul_map <- new_map[new_map$id <= 11740,]
+x_merge <- merge(seoul_map, x, by='id')
+library(readxl)
+SDE_TL_SCCO <- read.csv('/Users/imjong-in/Nano Degree/project/1st project/1st project data/4th_Competition/WGS1984.csv')
+SDE_TL_SCCO <- SDE_TL_SCCO[c(order(SDE_TL_SCCO$시군구명_한글)),]
+x$long <- SDE_TL_SCCO$경도
+x$lat <- SDE_TL_SCCO$위도
+x <- x[c(order(x$시군구)),]
+ggplot() + geom_polygon(data = x_merge, aes(x = long, y = lat, group=group, fill=gap), color= 'black')
+ggplot() +
+  geom_polygon(data = x_merge,
+               aes(x = long,
+                   y = lat,
+                   group = group,
+                   fill = gap),
+               color = "white")  +
+  scale_fill_gradient(low = "#FBCF61",
+                      high = "#00CC99",
+                      space = "Lab",
+                      guide = "colourbar") +
+  labs(fill = "구별 gap") +
+  theme_void() +
+  theme(legend.position = c(.15, .85)) +
+  geom_text(data = x,
+            aes(x = long,
+                y = lat,
+                label = paste(시군구, gap, sep = "\n")))
+write.csv(x = x_merge, file = "x_merge.csv" )
+write.csv(x = seoul_id, file = "seoul_id.csv" )
+write.csv(x = seoul_map, file = "seoul_map.csv" )
+write.csv(x = x, file = "서울시지도 시각화.csv" )
+
+##이름 잘보이게 위도 경도 수정
+SDE_TL_SCCO$경도[3] <- c(127.0037)##강북구
+SDE_TL_SCCO$경도[23] <- c(126.9661)##종로구
+SDE_TL_SCCO$경도[15] <- c(127.0178)##서초구
+SDE_TL_SCCO$경도[1] <- c(127.0564)##강남구
+SDE_TL_SCCO$위도[17] <- c(37.60299)##성북구
+SDE_TL_SCCO$위도[19] <- c(37.52106)##양천구
+SDE_TL_SCCO$위도[12] <- c(37.4995)##동작구
+x$long <- SDE_TL_SCCO$경도
+x$lat <- SDE_TL_SCCO$위도
+```
+
+평당 가격 중위값이 높게 상승한 구역은 모두 *한강근처*임을 알 수 있었고, 한강에서 멀어질수록 낮은 상승률을 보였다.
+또한 마포, 강남, 용산, 서초, 송파 등 비즈니스 활성지역일수록 높은 상승가를 보이고 있었으며, 성동구의 경우 2008년 이후 시작된 성동구 재개발 사업에 따른 프리미엄 아파트의 준공 및 입주로 높은 평당 가격 상승을 보였다.
+![text](C:/Users/junho/Documents/Nano degree/project/graph/서울시.png)
+
+## 각 행정구역별 거래량의 차이
+
+```{r eval = F}
+#거래량 차이 그래프 코드
+par(family = 'AppleGothic')
+y <- rbind(apt_data_08vs19$거래량08, apt_data_08vs19$거래량19)
+barplot(y,
+        names.arg = apt_data_08vs19$시군구,
+        col = 3:2,
+        ylim = c(0, 7000),
+        xlab = "시군구",
+        ylab = "거래량",
+        beside = T,
+        cex.axis = 0.5,
+        cex.names = 0.4,
+        main = '2008-2019 아파트 거래량 비교')
+legend('topright', title = '년도', legend = c(2019, 2008), fill = 2:3, cex = 0.7)
+```
+
+
+송파 위례 신도시와 성동구를 제외한 모든 행정구역에서 2008년 대비 거래량이 감소한 모습을 보이고 있었다. 특히 노원, 강서, 마포구의 아파트 거래량은 타 행정구역 대비 크게 감소한 모습을 보이고 있었다.
+![text](C:/Users/junho/Documents/Nano degree/project/graph/아파트거래량비교.png)
+
+
+## 각 변수별 상관계수 확인
+
+```{r eval = F}
+install.packages("PerformanceAnalytics")
+library(PerformanceAnalytics)
+correlation_chart <- apt_data_08vs19[,-c(1,3,6,11,13,16)]
+plot(correlation_chart)
+pairs(correlation_chart, panel = panel.smooth)
+chart.Correlation(correlation_chart, histogram=FALSE, pch=19)
+correlation_chart$거래량19 <- as.numeric(correlation_chart$거래량19)
+correlation_chart$공원수 <- as.numeric(correlation_chart$공원수)
+correlation_chart$어린이집수 <- as.numeric(correlation_chart$어린이집수)
+chart.Correlation(correlation_chart, histogram=FALSE, pch=19) 
+```
+
+
+2018년 1인 아파트 거주자 수는 2019년 거래량과 양의 상관관계가 있음을 알 수 있었고, 2019년 세대수 역시 2019년 거래량과 양의 상관관계를 보이고 있었다. 또한 2008년 이후 꾸준히 감소하고 있는 세대당 인구수는 평당 가격 중위값의 차이와 양의 상관관계를 보이고 있었으며, 1인 거주자수 차이와는 음의 상관관계를 보이고 있었다.
+![text](C:/Users/junho/Documents/Nano degree/project/graph/컬럼별상관계수.png)
+
+$$평균가격 상승요인 = 1인 거주자수 증가 -> 전체 세대수 증가 -> 부동산 수요 촉진$$
+
+이는 결국 가구당 인구수의 감소는 1인 가구자수의 증대를 야기하고, 1인 가구자수 증대는 전체 세대수로 이어짐을 알 수 있다. 증가된 전체 세대수로 인해 부동산 수요는 감소하지 않았으며, 이는 결국 평당 가격 상승으로 이어질 수 있다고 판단했다.
+
+
+## 각 변수들간의 유의성 검정
+
+* 가구수 거래량
+```{r eval=F}
+cor.test(x = age_graph$세대수19, y = age_graph$trans19)
+	Pearson's product-moment correlation
+
+data:  age_graph$세대수19 and age_graph$trans19
+t = -3.1194, df = 23, p-value = 0.004821
+alternative hypothesis: true correlation is not equal to 0
+95 percent confidence interval:
+ -0.7736909 -0.1913390
+sample estimates:
+      cor 
+-0.545247 
+```
+![](C:/Users/junho/Documents/Nano degree/project/graph/가구수.jpg)
+
+세대수와 거래량은 Correlation chart에서 양의 상관관계를 보였으나 유의성 검정에서 귀무가설 기각으로 두 변수간 상관관계는 유의하지 않았다.
+
+* 1인거주자 거래량
+```{r eval=F}
+ cor.test(x = age_graph$아파트1인거주자18년, y = age_graph$trans19)
+	Pearson's product-moment correlation
+
+data:  age_graph$아파트1인거주자18년 and age_graph$trans19
+t = -1.7017, df = 23, p-value = 0.1023
+alternative hypothesis: true correlation is not equal to 0
+95 percent confidence interval:
+ -0.64439035  0.06997124
+sample estimates:
+       cor 
+-0.3344052 
+```
+![](C:/Users/junho/Documents/Nano degree/project/graph/1인거주자.jpg)
+1인 아파트 거주자 수와 2019년도 아파트 거래량 또한 Correlation chart에서 양의 상관관계를 보였으나 유의성 검정에서 귀무가설 기각으로 두 변수간 상관관계는 유의하지 않았다.
+
+* 평당가격 거래량
+```{r eval=F}
+cor.test(x = age_graph$가구당인구, y = age_graph$gap)
+	Pearson's product-moment correlation
+
+data:  age_graph$가구당인구 and age_graph$gap
+t = 3.2884, df = 23, p-value = 0.003218
+alternative hypothesis: true correlation is not equal to 0
+95 percent confidence interval:
+ 0.2194113 0.7851923
+sample estimates:
+      cor 
+0.5655143 
+```
+![text](C:/Users/junho/Documents/Nano degree/project/graph/평당가격1.jpg)
+가구당 인구수 증감과 평당가격 중위값 차이 역시 Correlation chart에서 양의 상관관계를 보였으나 유의성 검정에서 귀무가설 기각으로 두 변수간 상관관계는 유의 하지 않았다.
+
+
+# 결론
+
+가구당 인구수가 2008년부터 꾸준히 줄어들면서 서울의 1인 세대수는 증가하고 있는 추세다. 이로 인해 주택보급률이 하락하여 부동산 수요를 촉진시키고 있는 것은 맞지만, 이와같은 인구통계학적인 특성들이 서울시 아파트 평당 가격 상승에 큰 영향을 주지는 않은 것으로 나타났다. 하지만 공급이 현저히 줄어들었고, 수요는 꾸준한 가운데 2027년까지 서울의 세대수가 증가한다는 통계청의 발표를 미루어 볼 때 공급보다 수요가 더 많은 시장 논리에 따라 서울의 아파트 가격은 앞으로도 계속 상승할 것으로 예상된다.
+
+> 집값 급등의 진앙인 서울에선 이처럼 주택공급이 줄어드는데, 전체가구수는 늘면서 주택보급률이 하락하고있다.
+통계청에따르면, 서울의 가구수는 꾸준히 늘고있다. 2018년 382만가구에서 2021년엔386만가구(추정치)로 증가세다. 2027년에는 391만 가구까지 늘어난다.
+[출처]:https://news.chosun.com/site/data/html_dir/2020/07/13/2020071300084.html?utm_source=naver&utm_medium=original&utm_campaign=news
+
+![text](C:/Users/junho/Documents/Nano degree/project/graph/평당가격.jpg)
+
+특히, 이와 같은 세대수에 증가와 평당가격 증가를 미루어 볼 때, 2/4분면의 성동구, 마포구, 동작구, 송파구, 광진구의 경우 한강과 강남, 서초 등 비즈니스 활성화 지역과 가까운 지리적 이점을 토대로 타 행정구역 대비하여 평당가격이 더 많이 상승할 것으로 예상할 수 있다.
